@@ -5,15 +5,81 @@ const { spawn } = require('child_process');
 require('dotenv').config();
 
 class ImageProcessorBot {
-  constructor() {
+  constructor(options = {}) {
     const botToken = process.env.TELEGRAM_BOT_TOKEN;
-    if (!botToken) {
-      console.error('❌ TELEGRAM_BOT_TOKEN is not set in environment variables');
-      console.error('   Please create a .env file with TELEGRAM_BOT_TOKEN=your_bot_token');
-      process.exit(1);
+    // In test mode, we don't need a valid token
+    if (!options.testMode) {
+      if (!botToken) {
+        console.error('❌ TELEGRAM_BOT_TOKEN is not set in environment variables');
+        console.error('   Please create a .env file with TELEGRAM_BOT_TOKEN=your_bot_token');
+        process.exit(1);
+      }
     }
-    this.bot = new TelegramBot(botToken, { polling: true });
-    this.setupCommands();
+    
+    // Parse allowed user IDs from environment variable
+    // Three states:
+    // 1. ALLOWED_USER_IDS not set (undefined) -> allow everyone
+    // 2. ALLOWED_USER_IDS set but empty string -> no users allowed
+    // 3. ALLOWED_USER_IDS set with comma-separated IDs -> only those users allowed
+     const allowedIdsStr = process.env.ALLOWED_USER_IDS;
+    
+    if (allowedIdsStr === undefined) {
+      // Variable not set - allow everyone
+      this.allowedUserIds = null;
+      console.log(`🤖 Bot initialized. Access: ALLOWED_USER_IDS not set - allowing everyone`);
+    } else {
+      // Variable is set (could be empty string or contains IDs)
+      this.allowedUserIds = new Set();
+      if (allowedIdsStr.trim() !== '') {
+        const ids = allowedIdsStr.split(',').map(id => id.trim()).filter(id => id);
+        ids.forEach(id => {
+          const numId = parseInt(id, 10);
+          if (!isNaN(numId)) {
+            this.allowedUserIds.add(numId);
+          } else {
+            console.log(`⚠️ WARNING: Invalid user ID in ALLOWED_USER_IDS: "${id}"`);
+          }
+        });
+      }
+      
+      if (this.allowedUserIds.size > 0) {
+        console.log(`🤖 Bot initialized. Allowed users: ${Array.from(this.allowedUserIds).join(', ')}`);
+      } else {
+        console.log(`🤖 Bot initialized. Access: ALLOWED_USER_IDS is empty - no users allowed`);
+      }
+    }
+    
+    // Only create bot and start polling if not in test mode
+    if (!options.testMode) {
+      const tokenForBot = botToken || 'dummy-token-for-testing';
+      this.bot = new TelegramBot(tokenForBot, { polling: true });
+      this.setupCommands();
+    } else {
+      this.bot = null;
+    }
+  }
+  
+  isUserAllowed(userId) {
+    // Convert userId to number for consistent comparison (same as parsing from env)
+    const userIdNum = parseInt(userId, 10);
+    
+    // Check if userId is a valid number
+    if (isNaN(userIdNum)) {
+      return false;
+    }
+    
+    // Case 1: Variable not set - allow everyone
+    if (this.allowedUserIds === null) {
+      return true;
+    }
+    
+    // Case 2: Variable set but empty - no users allowed
+    if (this.allowedUserIds.size === 0) {
+      return false;
+    }
+    
+    // Case 3: Check against allowed list
+    return this.allowedUserIds.has(userIdNum);
   }
 
   setupCommands() {
@@ -44,15 +110,64 @@ class ImageProcessorBot {
         `Requirements:\n` +
         `• Python 3.7+ with Pillow and numpy installed\n` +
         `• Template files (show.png, show2.jpg, show3.png) in project root\n\n` +
+        `🔒 Access Control:\n` +
+        `• Use /id to get your User ID\n` +
+        `• Bot admin can configure ALLOWED_USER_IDS in .env:\n` +
+        `  - Omit variable: allow everyone\n` +
+        `  - Set empty (ALLOWED_USER_IDS=): no users allowed\n` +
+        `  - Set with IDs: only listed users allowed\n\n` +
         `Commands:\n` +
         `/start - Welcome message\n` +
-        `/help - This help message`
+        `/help - This help message\n` +
+        `/id - Get your Telegram user ID`
+      );
+    });
+
+    this.bot.onText(/\/id/, (msg) => {
+      const chatId = msg.chat.id;
+      const userId = msg.from.id;
+      const username = msg.from.username ? `@${msg.from.username}` : 'Not set';
+      const firstName = msg.from.first_name || 'Not set';
+      const lastName = msg.from.last_name || 'Not set';
+      
+      this.bot.sendMessage(chatId,
+        `📋 Your Telegram Information:\n\n` +
+        `👤 User ID: ${userId}\n` +
+        `💬 Chat ID: ${chatId}\n` +
+        `👤 Username: ${username}\n` +
+        `📛 First Name: ${firstName}\n` +
+        `📛 Last Name: ${lastName}\n\n` +
+        `This information can be useful for debugging or specific bot features.`
       );
     });
 
     // Handle photo messages
     this.bot.on('photo', async (msg) => {
       const chatId = msg.chat.id;
+      
+      // Check if message has from field (user information)
+      if (!msg.from) {
+        console.log(`⚠️ Photo received without 'from' field, denying access. Chat ID: ${chatId}`);
+        this.bot.sendMessage(chatId,
+          `⛔ Access Denied\n\n` +
+          `Cannot identify user. Image processing is not available in this context.`
+        );
+        return;
+      }
+      
+      const userId = msg.from.id;
+      console.log(`📷 Photo received from user ${userId}`);
+
+      // Check if user is allowed to use image processing
+      if (!this.isUserAllowed(userId)) {
+        this.bot.sendMessage(chatId,
+          `⛔ Access Denied\n\n` +
+          `You are not authorized to use the image processing feature.\n` +
+          `Your User ID: ${userId}\n\n` +
+          `Use /id to see your Telegram information.`
+        );
+        return;
+      }
 
       try {
         // Get the largest photo (last in the array)
@@ -355,4 +470,5 @@ class ImageProcessorBot {
   }
 }
 
-module.exports = new ImageProcessorBot();
+module.exports = ImageProcessorBot;
+module.exports.ImageProcessorBot = ImageProcessorBot;

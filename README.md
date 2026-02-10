@@ -2,13 +2,14 @@
 
 A Telegram bot that processes images into framed artwork with perspective mockups.
 
-## Featuress
+## Features
 
 - 🖼️ Process any image into framed artwork with fluorescent green borders
 - 🔄 Generate 3 different perspective mockups using template backgrounds
 - 📸 Simple usage: just send a photo to the bot
 - ⚡ Automatic cleanup of temporary files
 - 🐍 Python-powered image processing with Pillow and numpy
+- 🔒 Access control: Restrict image processing to specific user IDs (optional)
 
 ## Prerequisites
 
@@ -44,10 +45,15 @@ A Telegram bot that processes images into framed artwork with perspective mockup
      ```bash
      cp .env.example .env
      ```
-   - Edit `.env` and add your Telegram bot token:
-     ```
-     TELEGRAM_BOT_TOKEN=your_bot_token_here
-     ```
+    - Edit `.env` and add your Telegram bot token:
+      ```
+      TELEGRAM_BOT_TOKEN=your_bot_token_here
+      ```
+    - Optional: Add comma-separated user IDs to restrict access:
+      ```
+      ALLOWED_USER_IDS=123456789,987654321
+      ```
+      Leave empty to allow everyone. Use `/id` command to get user IDs.
 
 4. **Get a Telegram bot token**
    - Open Telegram and search for [@BotFather](https://t.me/botfather)
@@ -74,16 +80,20 @@ A Telegram bot that processes images into framed artwork with perspective mockup
    - Search for your bot's username (the one you created with @BotFather)
    - Start a conversation with `/start`
 
-3. **Process images**
-   - Send any image directly to the bot (as a photo, not a file)
-   - The bot will process it and return 3 different perspective mockups:
-     - `show.png` - Primary mockup
-     - `show2.png` - Secondary mockup  
-     - `show3.png` - Tertiary mockup
+ 3. **Process images**
+    - Send any image directly to the bot (as a photo, not a file)
+    - The bot will process it and return 3 different perspective mockups:
+      - `show.png` - Primary mockup
+      - `show2.png` - Secondary mockup  
+      - `show3.png` - Tertiary mockup
+    
+    ⚠️ **Note**: If `ALLOWED_USER_IDS` is configured in `.env`, only listed users can process images.
+    All users can still use `/start`, `/help`, and `/id` commands.
 
-4. **Available commands**
+ 4. **Available commands**
    - `/start` - Welcome message and brief introduction
    - `/help` - Show all available commands with examples
+   - `/id` - Get your Telegram user ID and chat information
 
 ## How It Works
 

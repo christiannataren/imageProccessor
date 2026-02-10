@@ -1,4 +1,5 @@
-const bot = require('./src/bot/bot');
+const ImageProcessorBot = require('./src/bot/bot');
+const bot = new ImageProcessorBot();
 
 console.log('🚀 Starting Image Processor Bot...');
 
