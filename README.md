@@ -1,27 +1,23 @@
-# Telegram Price Monitor Bot 🤖💰
+# Image Processor Bot 🤖🎨
 
-A Telegram bot that monitors product prices from various online stores and notifies you when prices change.
+A Telegram bot that processes images into framed artwork with perspective mockups.
 
-## Features
+## Featuress
 
-- 📦 Monitor prices from Amazon, eBay, AliExpress, and other e-commerce sites
-- 🔔 Get notified when prices change by more than 1%
-- 📊 Track price history over time
-- 🛠️ Simple commands to add, remove, and list monitored products
-- ⏰ Automatic periodic price checks (default: every 30 minutes)
-- 💾 SQLite database for data persistence
-- 🖼️ **Image Processing**: Send images to create framed artwork with perspective mockups (3 variants)
+- 🖼️ Process any image into framed artwork with fluorescent green borders
+- 🔄 Generate 3 different perspective mockups using template backgrounds
+- 📸 Simple usage: just send a photo to the bot
+- ⚡ Automatic cleanup of temporary files
+- 🐍 Python-powered image processing with Pillow and numpy
 
 ## Prerequisites
 
+### Node.js Requirements
 - Node.js (v14 or higher)
 - npm or yarn
 - A Telegram bot token from [@BotFather](https://t.me/botfather)
 
-### For Image Processing (Optional)
-
-To use the image processing feature, you need:
-
+### Python Requirements (for image processing)
 1. **Python 3.7+** installed on your system
 2. **Python dependencies**:
    ```bash
@@ -31,14 +27,14 @@ To use the image processing feature, you need:
    - `show.png` - Primary template background
    - `show2.jpg` - Secondary template background  
    - `show3.png` - Tertiary template background
-   
+    
    *(You'll need to provide these template files yourself)*
 
 ## Setup
 
 1. **Clone or download the project**
 
-2. **Install dependencies**
+2. **Install Node.js dependencies**
    ```bash
    npm install
    ```
@@ -52,16 +48,16 @@ To use the image processing feature, you need:
      ```
      TELEGRAM_BOT_TOKEN=your_bot_token_here
      ```
-   - Optional: Adjust other settings:
-     - `DATABASE_PATH`: Path to SQLite database file (default: `./prices.db`)
-     - `CHECK_INTERVAL_MINUTES`: How often to check prices (default: `30`)
-     - `LOG_LEVEL`: Logging level (default: `info`)
 
 4. **Get a Telegram bot token**
    - Open Telegram and search for [@BotFather](https://t.me/botfather)
    - Send `/newbot` and follow instructions
    - Copy the token provided by BotFather
    - Paste it in your `.env` file
+
+5. **Add template files**
+   - Ensure `show.png`, `show2.jpg`, and `show3.png` are in the project root directory
+   - These are background templates for perspective transformations
 
 ## Usage
 
@@ -78,71 +74,60 @@ To use the image processing feature, you need:
    - Search for your bot's username (the one you created with @BotFather)
    - Start a conversation with `/start`
 
-3. **Available commands**
-   - `/start` - Welcome message and brief introduction
-   - `/help` - Show all available commands with examples
-   - `/add <url>` - Add a product URL to monitor
-     - Example: `/add https://www.amazon.com/dp/B08N5WRWNW`
-   - `/list` - List all products you're monitoring
-    - `/remove <url>` - Remove a product from monitoring
-    - `/check <url>` - Check price immediately without adding to monitor list
-
-4. **Image Processing**
+3. **Process images**
    - Send any image directly to the bot (as a photo, not a file)
    - The bot will process it and return 3 different perspective mockups:
      - `show.png` - Primary mockup
      - `show2.png` - Secondary mockup  
      - `show3.png` - Tertiary mockup
-   - Processing includes:
-     - Adding fluorescent green borders
-     - Perspective transformation
-     - Blending with template backgrounds
+
+4. **Available commands**
+   - `/start` - Welcome message and brief introduction
+   - `/help` - Show all available commands with examples
 
 ## How It Works
 
-1. **Adding a product**: When you add a URL, the bot:
-   - Validates the URL
-   - Fetches the product page
-   - Extracts product title and current price
-   - Stores the information in the database
-   - Starts monitoring for price changes
+1. **Image reception**: When you send a photo, the bot:
+   - Downloads the image from Telegram servers
+   - Creates a unique session directory
+   - Saves the image for processing
 
-2. **Price monitoring**: The bot periodically checks all monitored products:
-   - Default: every 30 minutes (configurable in `.env`)
-   - Compares current price with previous price
-   - Sends notification if price changes by more than 1%
-   - Updates price history in database
+2. **Image processing**: The bot uses Python script (`image_processor.py`) to:
+   - Create a bordered print-ready image (3900x5700 @ 300DPI)
+   - Apply perspective transformations using template backgrounds
+   - Generate 3 different mockups with multiply blend mode
 
-3. **Price extraction**: The bot uses intelligent scraping to extract prices:
-   - Domain-specific selectors for Amazon, eBay, AliExpress
-   - Fallback to generic price detection using meta tags and common patterns
-   - Handles different currency formats
+3. **Result delivery**: The bot:
+   - Sends all processed images back to you
+   - Cleans up temporary files automatically
 
 ## Project Structure
 
 ```
 ├── index.js              # Main application entry point
 ├── src/
-│   ├── config.js        # Environment configuration
-│   ├── db/
-│   │   └── database.js  # SQLite database operations
-│   ├── scraper/
-│   │   └── scraper.js   # Price extraction from websites
-│   ├── bot/
-│   │   └── bot.js       # Telegram bot commands and logic
-│   └── services/
-│       └── priceChecker.js # Scheduled price checking service
+│   └── bot/
+│       └── bot.js       # Telegram bot commands and logic
+├── image_processor.py    # Python image processing script
+├── show.png             # Primary template background
+├── show2.jpg            # Secondary template background
+├── show3.png            # Tertiary template background
 ├── .env.example         # Example environment variables
 ├── package.json         # Dependencies and scripts
 └── README.md           # This file
 ```
 
-## Supported Websites
+## Image Processing Pipeline
 
-- **Amazon** (`amazon.com`, `amazon.co.uk`, etc.)
-- **eBay** (`ebay.com`, `ebay.co.uk`, etc.)
-- **AliExpress** (`aliexpress.com`)
-- **Generic websites** with price meta tags or common price patterns
+1. **Bordered image creation**:
+   - Resizes and crops image to fit within borders
+   - Adds fluorescent green borders (3900x5700 canvas)
+   - Saves as print-ready PNG with 300 DPI
+
+2. **Perspective transformations**:
+   - Applies perspective warp using custom coordinate mappings
+   - Uses multiply blend mode to composite onto templates
+   - Generates 3 variants with different perspectives
 
 ## Troubleshooting
 
@@ -153,68 +138,44 @@ To use the image processing feature, you need:
    - Verify the bot token is correct
    - Check if port is already in use
 
-2. **Price not detected**
-   - The website might have anti-bot measures
-   - Price might be loaded dynamically with JavaScript
-   - Try using `/check` command to test the URL
+2. **Missing template files**
+   ```
+   ❌ Missing background template files: show.png, show2.jpg, show3.png
+   ```
+   - Ensure `show.png`, `show2.jpg`, and `show3.png` are in the project root directory
+   - These are NOT your input images! They are background templates for perspective effects.
 
-3. **Database errors**
-   - Ensure write permissions in the project directory
-   - Delete `prices.db` file to start fresh
+3. **Python dependencies not installed**
+   ```
+   ModuleNotFoundError: No module named 'PIL'
+   ```
+   - Install required Python packages: `pip install Pillow numpy`
 
-### Logs
+4. **Python not found**
+   ```
+   Failed to start Python process
+   ```
+   - Install Python 3.7+ and ensure it's in your system PATH
+   - Verify with `python --version` in terminal
 
-The bot outputs logs to console with timestamps and log levels. Check the console output for errors.
+5. **Image format issues**
+   - Ensure you're sending JPEG, PNG, or other supported image formats
+   - Some image formats (like WebP) may not work correctly
 
-## Troubleshooting
+### Error Messages
 
-### Image Processing Errors
-
-**Missing template files**
-```
-❌ Missing template files: show.png, show2.jpg, show3.png
-```
-- Ensure `show.png`, `show2.jpg`, and `show3.png` are in the project root directory
-- These template files are required for perspective transformations
-
-**Python dependencies not installed**
-```
-ModuleNotFoundError: No module named 'PIL'
-```
-- Install required Python packages: `pip install Pillow numpy`
-
-**Python not found**
-```
-Failed to start Python process
-```
-- Install Python 3.7+ and ensure it's in your system PATH
-- Verify with `python --version` in terminal
-
-**Unicode encoding errors**
-- The script now uses ASCII-only error messages (fixed in latest version)
-
-**No valid image files**
-- Ensure you're sending JPEG, PNG, or other supported image formats
-- Some image formats (like WebP) may not work correctly
-
-### Price Monitoring Errors
-
-**Cannot extract price from URL**
-- The website may have changed its structure
-- Try using `/check` command to test price extraction
-- Some sites require JavaScript rendering (not supported)
-
-**Bot not responding to commands**
-- Ensure the bot is running (`npm start`)
-- Check your Telegram bot token in `.env` file
-- Verify internet connection
+The bot provides user-friendly error messages for common issues:
+- Missing template files
+- Python not installed
+- Missing Python dependencies (Pillow, numpy)
+- Unsupported image formats
 
 ## Limitations
 
-- Price extraction depends on website structure and may break if sites change their layout
-- Some websites may block automated requests
-- JavaScript-rendered content (React, Angular, Vue.js sites) may not work
-- Rate limiting: The bot adds 2-second delays between requests to avoid being blocked
+- Requires Python 3.7+ with Pillow and numpy installed
+- Template files must be provided by the user
+- Large images may take longer to process
+- Some image formats may not be supported
 
 ## Contributing
 
@@ -237,4 +198,4 @@ If you encounter issues or have questions:
 
 ---
 
-**Happy price monitoring!** 🎯
+**Happy image processing!** 🎨
